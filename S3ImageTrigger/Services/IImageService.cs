@@ -2,5 +2,6 @@
 
 public interface IImageService
 {
-    void BuildThumbnailImage(Stream imgStream, string imageName);
+    void BuildThumbnailImageTest(Stream imgStream, string imageName);
+    Task<Stream> BuildThumbnailImage(Stream imgStream);
 }

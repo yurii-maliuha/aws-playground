@@ -61,11 +61,16 @@ namespace S3ImageTrigger
                     //var (bucketName, objectName) = (s3Event.Bucket.Name, s3Event.Object.Key);
                     //await DownloadObjectFromBucketAsync(new AmazonS3Client(), bucketName, objectName);
 
-                    context.Logger.LogInformation("Downloading image from S3");
+                    context.Logger.LogInformation($"Downloading image from S3 [{s3Event.Bucket.Name}, {s3Event.Object.Key}]");
                     using (var imageStream = await _bucketService.GetImageStream(s3Event))
                     {
-                        _imageService.BuildThumbnailImage(imageStream, s3Event.Object.Key);
-                        context.Logger.LogInformation("Image thumbnail is created");
+                        //_imageService.BuildThumbnailImageTest(imageStream, s3Event.Object.Key);
+                        using (var thumbnailImgStream = await _imageService.BuildThumbnailImage(imageStream))
+                        {
+                            context.Logger.LogInformation("Image thumbnail is created");
+                            await _bucketService.SaveImage(s3Event, thumbnailImgStream);
+                            context.Logger.LogInformation("Image thumbnail is uploaded to S3 bucket");
+                        }
                     }
                 }
                 catch (Exception e)

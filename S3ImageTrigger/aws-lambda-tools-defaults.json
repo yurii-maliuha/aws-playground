@@ -12,7 +12,7 @@
     "function-runtime" : "dotnet6",
     "function-memory-size" : 512,
     "function-timeout"     : 15,
-    "function-handler"     : "AwsPlayground::S3ImageTrigger.Function::FunctionHandler",
+    "function-handler"     : "S3ImageTrigger::S3ImageTrigger.Function::FunctionHandler",
     "framework"            : "net6.0",
     "function-name"        : "s3-img-trigger",
     "function-description" : "",
