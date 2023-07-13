@@ -1,6 +1,7 @@
 ﻿using Amazon.Lambda.S3Events;
 using Amazon.S3;
 using Amazon.S3.Model;
+using S3ImageTrigger.Models;
 
 namespace S3ImageTrigger.Services;
 
@@ -12,7 +13,7 @@ public class BucketService : IBucketService
         _s3Client = s3Client;
     }
 
-    public async Task<Stream> GetImageStream(S3Event.S3Entity s3Entity)
+    public async Task<ImageObject> GetImageStream(S3Event.S3Entity s3Entity)
     {
         var (bucketName, objectName) = (s3Entity.Bucket.Name, s3Entity.Object.Key);
         var request = new GetObjectRequest
@@ -26,19 +27,21 @@ public class BucketService : IBucketService
             var ms = new MemoryStream();
             await response.ResponseStream.CopyToAsync(ms);
             ms.Seek(0, SeekOrigin.Begin);
-            return ms;
+            return new ImageObject
+            {
+                FullName = objectName,
+                Content = ms
+            };
         }
     }
 
-    public async Task SaveImage(S3Event.S3Entity s3Entity, Stream imgStream)
+    public async Task SaveImage(ImageObject imageObject, string bucketName)
     {
-        var (bucketName, imageName) = (s3Entity.Bucket.Name, s3Entity.Object.Key);
-        var thumbnailImgName = string.Join("-thumbnail.", imageName.Split('.'));
         await _s3Client.PutObjectAsync(new PutObjectRequest
         {
-            BucketName = $"{bucketName}-thumbnails",
-            Key = thumbnailImgName,
-            InputStream = imgStream
+            BucketName = bucketName,
+            Key = imageObject.FullName,
+            InputStream = imageObject.Content
         });
     }
 }

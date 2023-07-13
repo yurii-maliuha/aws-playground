@@ -1,44 +1,44 @@
-﻿using SixLabors.ImageSharp.Formats.Jpeg;
+﻿using S3ImageTrigger.Models;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 
 namespace S3ImageTrigger.Services;
 
 public class ImageService : IImageService
 {
-    public void BuildThumbnailImageTest(Stream imgStream, string imageName)
+    private const int THUMBNAIL_WIDTH = 200;
+    private const int THUMBNAIL_HEIGHT = 200;
+    private readonly Dictionary<string, ImageEncoder> _encoderMapper = new Dictionary<string, ImageEncoder>
     {
-        //var thumbnailImgStream = new MemoryStream();
-        using (var image = Image.Load(imgStream))
-        {
-            // Create B&W thumbnail
-            image.Mutate(ctx => ctx.Resize(new ResizeOptions()
-            {
-                Mode = ResizeMode.Min,
-                Size = new Size(200, 200)
-            }));
-            //image.Save(thumbnailImgStream, new JpegEncoder());
-            //thumbnailImgStream.Seek(0, SeekOrigin.Begin);
+        { "jpg", new JpegEncoder() },
+        { "png", new PngEncoder() }
+    };
 
-            var thumbnailImgName = string.Join("-thumbnail.", imageName.Split('.'));
-            image.Save(thumbnailImgName);
-        }
-    }
-
-    public async Task<Stream> BuildThumbnailImage(Stream imgStream)
+    public async Task<ImageObject> BuildThumbnailImage(ImageObject imageObject)
     {
         var thumbnailImgStream = new MemoryStream();
-        using (var image = Image.Load(imgStream))
+        using (var image = Image.Load(imageObject.Content))
         {
-            // Create B&W thumbnail
             image.Mutate(ctx => ctx.Resize(new ResizeOptions()
             {
                 Mode = ResizeMode.Min,
-                Size = new Size(200, 200)
+                Size = new Size(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
             }));
 
-            await image.SaveAsync(thumbnailImgStream, new JpegEncoder());
+            if (!_encoderMapper.Keys.Contains(imageObject.Extension))
+            {
+                throw new ArgumentOutOfRangeException($"Image extension {imageObject.Extension} is not supported");
+            }
+
+            await image.SaveAsync(thumbnailImgStream, _encoderMapper[imageObject.Extension]);
             thumbnailImgStream.Seek(0, SeekOrigin.Begin);
 
-            return thumbnailImgStream;
+            return new ImageObject()
+            {
+                FullName = string.Join("-thumbnail.", imageObject.FullName.Split('.')),
+                Content = thumbnailImgStream
+            };
         }
     }
 }
